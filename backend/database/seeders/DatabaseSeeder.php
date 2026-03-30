@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Team;
+use App\Services\FixtureService;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -19,5 +20,8 @@ class DatabaseSeeder extends Seeder
         foreach ($teams as $team) {
             Team::firstOrCreate(['name' => $team['name']], $team);
         }
+
+        // Generate fixtures after teams are seeded
+        app(FixtureService::class)->generate();
     }
 }

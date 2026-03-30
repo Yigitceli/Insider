@@ -18,6 +18,13 @@ class FootballMatch extends Model
         'is_played',
     ];
 
+    protected $casts = [
+        'is_played' => 'boolean',
+        'home_goals' => 'integer',
+        'away_goals' => 'integer',
+        'week' => 'integer',
+    ];
+
     public function homeTeam(): BelongsTo
     {
         return $this->belongsTo(Team::class, 'home_team_id');
