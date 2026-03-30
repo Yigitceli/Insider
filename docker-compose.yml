@@ -1,0 +1,76 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=insider
+      - MYSQL_USER=insider
+      - MYSQL_PASSWORD=secret
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "migrate", "--force"]
+    environment:
+      - APP_KEY=base64:W6av3D0Oy+0tgcU6tQ7TBw+FqSgMp5t9KorcOD9tMMo=
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=insider
+      - DB_USERNAME=insider
+      - DB_PASSWORD=secret
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "db:seed", "--force"]
+    environment:
+      - APP_KEY=base64:W6av3D0Oy+0tgcU6tQ7TBw+FqSgMp5t9KorcOD9tMMo=
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=insider
+      - DB_USERNAME=insider
+      - DB_PASSWORD=secret
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_KEY=base64:W6av3D0Oy+0tgcU6tQ7TBw+FqSgMp5t9KorcOD9tMMo=
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=insider
+      - DB_USERNAME=insider
+      - DB_PASSWORD=secret
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    volumes:
+      - ./backend:/var/www/html
+
+volumes:
+  db_data:
