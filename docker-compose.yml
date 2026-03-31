@@ -72,5 +72,17 @@ services:
     volumes:
       - ./backend:/var/www/html
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - app
+
 volumes:
   db_data:
