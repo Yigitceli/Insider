@@ -24,7 +24,7 @@ class PredictionService
     {
         $currentWeek = $this->matchRepository->getCurrentWeek();
 
-        if ($currentWeek <= self::PREDICTION_START_WEEK - 1) {
+        if ($currentWeek <= self::PREDICTION_START_WEEK) {
             return null;
         }
 

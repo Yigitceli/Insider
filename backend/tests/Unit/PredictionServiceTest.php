@@ -47,7 +47,11 @@ class PredictionServiceTest extends TestCase
         $this->assertNull($this->predictionService->predict());
 
         $this->simulationService->simulateWeek(3);
-        // After week 3, current week = 4 → predictions should appear
+        // After week 3, current week = 4 → still null (spec: after 4th week)
+        $this->assertNull($this->predictionService->predict());
+
+        $this->simulationService->simulateWeek(4);
+        // After week 4, current week = 5 → predictions should appear
         $this->assertNotNull($this->predictionService->predict());
     }
 

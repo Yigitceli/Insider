@@ -219,15 +219,15 @@ class LeagueApiTest extends TestCase
         $response->assertStatus(404);
     }
 
-    public function test_predictions_appear_after_week_three(): void
+    public function test_predictions_appear_after_week_four(): void
     {
-        // Weeks 1-2: no predictions (after playing, currentWeek becomes 2, 3)
-        for ($i = 0; $i < 2; $i++) {
+        // Weeks 1-3: no predictions
+        for ($i = 0; $i < 3; $i++) {
             $response = $this->postJson('/api/league/next-week');
             $this->assertNull($response->json('predictions'));
         }
 
-        // Week 3: after playing, currentWeek becomes 4 → predictions appear
+        // Week 4: after playing, currentWeek becomes 5 → predictions appear
         $response = $this->postJson('/api/league/next-week');
         $this->assertNotNull($response->json('predictions'));
         $this->assertCount(4, $response->json('predictions'));
