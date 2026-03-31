@@ -14,6 +14,21 @@ class SimulationService
         private MatchRepositoryInterface $matchRepository,
     ) {}
 
+    public function getCurrentWeek(): int
+    {
+        return $this->matchRepository->getCurrentWeek();
+    }
+
+    public function getMatchesByWeek(int $week): Collection
+    {
+        return $this->matchRepository->getByWeek($week);
+    }
+
+    public function updateMatchScore(int $id, int $homeGoals, int $awayGoals): FootballMatch
+    {
+        return $this->matchRepository->updateScore($id, $homeGoals, $awayGoals);
+    }
+
     public function simulateWeek(int $week): Collection
     {
         $matches = $this->matchRepository->getByWeek($week);

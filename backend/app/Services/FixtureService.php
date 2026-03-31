@@ -12,6 +12,11 @@ class FixtureService
         private MatchRepositoryInterface $matchRepository,
     ) {}
 
+    public function getAllMatches(): \Illuminate\Database\Eloquent\Collection
+    {
+        return $this->matchRepository->all();
+    }
+
     public function generate(): void
     {
         $this->matchRepository->deleteAll();
