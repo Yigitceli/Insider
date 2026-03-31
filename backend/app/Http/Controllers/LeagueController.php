@@ -11,14 +11,17 @@ use Illuminate\Http\JsonResponse;
 
 class LeagueController extends Controller
 {
-    private const TOTAL_WEEKS = 6;
-
     public function __construct(
         private FixtureService $fixtureService,
         private SimulationService $simulationService,
         private LeagueTableService $leagueTableService,
         private PredictionService $predictionService,
     ) {}
+
+    private function totalWeeks(): int
+    {
+        return $this->fixtureService->getTotalWeeks();
+    }
 
     /**
      * GET /api/teams
@@ -50,16 +53,18 @@ class LeagueController extends Controller
     {
         $currentWeek = $this->simulationService->getCurrentWeek();
         $lastPlayedWeek = $currentWeek - 1;
+        $totalWeeks = $this->totalWeeks();
 
         return response()->json([
             'league_table' => $this->leagueTableService->calculate(),
             'current_week' => $currentWeek,
+            'total_weeks' => $totalWeeks,
             'last_played_week' => $lastPlayedWeek > 0 ? $lastPlayedWeek : null,
             'matches' => $lastPlayedWeek > 0
                 ? $this->simulationService->getMatchesByWeek($lastPlayedWeek)
                 : [],
             'predictions' => $this->predictionService->predict(),
-            'is_finished' => $currentWeek > self::TOTAL_WEEKS,
+            'is_finished' => $currentWeek > $totalWeeks,
         ]);
     }
 
@@ -70,8 +75,9 @@ class LeagueController extends Controller
     public function nextWeek(): JsonResponse
     {
         $currentWeek = $this->simulationService->getCurrentWeek();
+        $totalWeeks = $this->totalWeeks();
 
-        if ($currentWeek > self::TOTAL_WEEKS) {
+        if ($currentWeek > $totalWeeks) {
             return response()->json([
                 'message' => 'League is already finished.',
             ], 400);
@@ -84,7 +90,7 @@ class LeagueController extends Controller
             'matches' => $matches,
             'league_table' => $this->leagueTableService->calculate(),
             'predictions' => $this->predictionService->predict(),
-            'is_finished' => $currentWeek >= self::TOTAL_WEEKS,
+            'is_finished' => $currentWeek >= $totalWeeks,
         ]);
     }
 
@@ -95,8 +101,9 @@ class LeagueController extends Controller
     public function playAll(): JsonResponse
     {
         $currentWeek = $this->simulationService->getCurrentWeek();
+        $totalWeeks = $this->totalWeeks();
 
-        if ($currentWeek > self::TOTAL_WEEKS) {
+        if ($currentWeek > $totalWeeks) {
             return response()->json([
                 'message' => 'League is already finished.',
             ], 400);
@@ -104,7 +111,7 @@ class LeagueController extends Controller
 
         $results = [];
 
-        for ($week = $currentWeek; $week <= self::TOTAL_WEEKS; $week++) {
+        for ($week = $currentWeek; $week <= $totalWeeks; $week++) {
             $matches = $this->simulationService->simulateWeek($week);
             $results[] = [
                 'week' => $week,

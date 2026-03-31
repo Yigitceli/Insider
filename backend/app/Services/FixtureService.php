@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\Interfaces\MatchRepositoryInterface;
 use App\Repositories\Interfaces\TeamRepositoryInterface;
+use InvalidArgumentException;
 
 class FixtureService
 {
@@ -22,16 +23,41 @@ class FixtureService
         return $this->matchRepository->all();
     }
 
+    /**
+     * Calculate total weeks based on team count.
+     * Double round-robin: each pair plays twice (home + away).
+     */
+    public function getTotalWeeks(): int
+    {
+        $count = $this->teamRepository->all()->count();
+
+        if ($count < 2) {
+            return 0;
+        }
+
+        // For odd teams, add bye → effective count is count+1
+        $effective = $count % 2 === 0 ? $count : $count + 1;
+
+        // Single leg = effective - 1 weeks, double leg = * 2
+        return ($effective - 1) * 2;
+    }
+
     public function generate(): void
     {
-        $this->matchRepository->deleteAll();
-
         $teams = $this->teamRepository->all();
         $teamIds = $teams->pluck('id')->toArray();
+        $count = count($teamIds);
+
+        if ($count < 2) {
+            throw new InvalidArgumentException('At least 2 teams are required to generate fixtures.');
+        }
+
+        $this->matchRepository->deleteAll();
 
         $firstLeg = $this->generateRoundRobin($teamIds);
+        $firstLegWeeks = count($firstLeg);
 
-        // First leg: weeks 1-3
+        // First leg
         foreach ($firstLeg as $week => $matches) {
             foreach ($matches as [$home, $away]) {
                 $this->matchRepository->create([
@@ -42,11 +68,11 @@ class FixtureService
             }
         }
 
-        // Second leg: weeks 4-6 (swap home/away)
+        // Second leg (swap home/away)
         foreach ($firstLeg as $week => $matches) {
             foreach ($matches as [$home, $away]) {
                 $this->matchRepository->create([
-                    'week' => $week + 4,
+                    'week' => $week + $firstLegWeeks + 1,
                     'home_team_id' => $away,
                     'away_team_id' => $home,
                 ]);
@@ -56,16 +82,22 @@ class FixtureService
 
     /**
      * Round-robin algorithm for N teams.
-     * Returns array of weeks, each containing match pairs [home_id, away_id].
+     * Supports both even and odd team counts.
+     * For odd teams, a BYE is added — those matches are skipped.
      */
     private function generateRoundRobin(array $teamIds): array
     {
         $count = count($teamIds);
+        // Odd number of teams: add a BYE placeholder
+        if ($count % 2 !== 0) {
+            $teamIds[] = null; // null = BYE
+            $count++;
+        }
+
         $rounds = $count - 1;
         $matchesPerRound = $count / 2;
 
         $teams = $teamIds;
-        // Fix first team, rotate the rest
         $fixed = array_shift($teams);
 
         $weeks = [];
@@ -74,13 +106,18 @@ class FixtureService
             $matches = [];
 
             // First match: fixed team vs first in rotation
-            $matches[] = [$fixed, $teams[0]];
+            $pair = [$fixed, $teams[0]];
+            if ($pair[0] !== null && $pair[1] !== null) {
+                $matches[] = $pair;
+            }
 
             // Remaining matches: pair from outside in
             for ($i = 1; $i < $matchesPerRound; $i++) {
                 $home = $teams[$i];
                 $away = $teams[$count - 2 - $i + 1];
-                $matches[] = [$home, $away];
+                if ($home !== null && $away !== null) {
+                    $matches[] = [$home, $away];
+                }
             }
 
             $weeks[] = $matches;

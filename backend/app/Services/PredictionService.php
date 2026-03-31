@@ -7,29 +7,39 @@ use App\Repositories\Interfaces\TeamRepositoryInterface;
 
 class PredictionService
 {
-    private const TOTAL_WEEKS = 6;
-    private const PREDICTION_START_WEEK = 4;
+    private const PREDICTION_THRESHOLD = 0.6; // Show predictions after 60% of league played
 
     public function __construct(
         private MatchRepositoryInterface $matchRepository,
         private TeamRepositoryInterface $teamRepository,
         private LeagueTableService $leagueTableService,
+        private FixtureService $fixtureService,
     ) {}
 
     /**
      * Calculate championship prediction percentages for each team.
-     * Returns null if predictions shouldn't be shown yet (before week 4).
+     * Returns null if predictions shouldn't be shown yet.
      */
     public function predict(): ?array
     {
-        $currentWeek = $this->matchRepository->getCurrentWeek();
+        $totalWeeks = $this->fixtureService->getTotalWeeks();
 
-        if ($currentWeek <= self::PREDICTION_START_WEEK) {
+        if ($totalWeeks === 0) {
+            return null;
+        }
+
+        $currentWeek = $this->matchRepository->getCurrentWeek();
+        $playedWeeks = $currentWeek - 1;
+
+        // Show predictions after 60% of league is played
+        $predictionStartAfter = (int) ceil($totalWeeks * self::PREDICTION_THRESHOLD);
+
+        if ($playedWeeks < $predictionStartAfter) {
             return null;
         }
 
         $standings = $this->leagueTableService->calculate();
-        $remainingWeeks = self::TOTAL_WEEKS - ($currentWeek - 1);
+        $remainingWeeks = $totalWeeks - $playedWeeks;
         $maxRemainingPoints = $remainingWeeks * 3;
 
         // If league is over, leader is champion
@@ -55,11 +65,7 @@ class PredictionService
             $strengthMap[$team->id] = $team->strength;
         }
 
-        // Calculate weighted probability:
-        // - Current points (most important)
-        // - Goal difference (form indicator)
-        // - Team strength (affects remaining matches)
-        // - Max possible points (mathematical chance)
+        // Calculate weighted probability
         $predictions = [];
         $totalWeight = 0;
 
@@ -67,7 +73,7 @@ class PredictionService
             $teamStrength = $strengthMap[$standing['team_id']] ?? 50;
 
             $pointsWeight = $standing['PTS'] * 3;
-            $gdWeight = max(0, $standing['GD'] + 10); // Normalize GD to positive
+            $gdWeight = max(0, $standing['GD'] + 10);
             $strengthWeight = ($teamStrength / 100) * $remainingWeeks * 2;
             $ceilingWeight = $standing['max_possible'];
 
