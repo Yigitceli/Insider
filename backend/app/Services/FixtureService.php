@@ -12,6 +12,11 @@ class FixtureService
         private MatchRepositoryInterface $matchRepository,
     ) {}
 
+    public function getTeams(): \Illuminate\Database\Eloquent\Collection
+    {
+        return $this->teamRepository->all();
+    }
+
     public function getAllMatches(): \Illuminate\Database\Eloquent\Collection
     {
         return $this->matchRepository->all();

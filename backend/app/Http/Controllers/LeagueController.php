@@ -21,6 +21,28 @@ class LeagueController extends Controller
     ) {}
 
     /**
+     * GET /api/teams
+     * Returns all teams.
+     */
+    public function teams(): JsonResponse
+    {
+        return response()->json([
+            'teams' => $this->fixtureService->getTeams(),
+        ]);
+    }
+
+    /**
+     * GET /api/fixtures
+     * Returns all matches (fixture view).
+     */
+    public function fixtures(): JsonResponse
+    {
+        return response()->json([
+            'matches' => $this->fixtureService->getAllMatches(),
+        ]);
+    }
+
+    /**
      * GET /api/league
      * Returns league table, current week matches, and predictions.
      */

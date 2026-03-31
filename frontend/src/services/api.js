@@ -24,6 +24,14 @@ async function request(method, path, body = null) {
 }
 
 export default {
+  getTeams() {
+    return request('GET', '/api/teams')
+  },
+
+  getFixtures() {
+    return request('GET', '/api/fixtures')
+  },
+
   getLeague() {
     return request('GET', '/api/league')
   },
