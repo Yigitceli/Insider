@@ -12,8 +12,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(TeamRepositoryInterface::class, TeamRepository::class);
-        $this->app->bind(MatchRepositoryInterface::class, MatchRepository::class);
+        $this->app->singleton(TeamRepositoryInterface::class, TeamRepository::class);
+        $this->app->singleton(MatchRepositoryInterface::class, MatchRepository::class);
     }
 
     public function boot(): void
