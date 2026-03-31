@@ -72,6 +72,20 @@ services:
     volumes:
       - ./backend:/var/www/html
 
+  test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "test"]
+    environment:
+      - APP_KEY=base64:W6av3D0Oy+0tgcU6tQ7TBw+FqSgMp5t9KorcOD9tMMo=
+      - DB_CONNECTION=sqlite
+      - "DB_DATABASE=:memory:"
+    volumes:
+      - ./backend:/var/www/html
+    profiles:
+      - test
+
   frontend:
     build:
       context: ./frontend

@@ -1,27 +1,14 @@
-/vendor/
-node_modules/
-npm-debug.log
-yarn-error.log
+# OS
+.DS_Store
+Thumbs.db
 
-# Laravel
-bootstrap/compiled.php
-app/storage/
-public/storage
-public/hot
-public_html/storage
-public_html/hot
-storage/*.key
-.env
-.env.backup
-.env.production
-Homestead.yaml
-Homestead.json
-/.vagrant
-.phpunit.result.cache
-/public/build
-/storage/pail
-.phpactor.json
-auth.json
+# IDE
+.idea/
+.vscode/
+.fleet/
+.nova/
+.zed/
+*.sw?
 
 # Project
 .claude/
