@@ -1,10 +1,6 @@
 <template>
   <div class="match-results">
-    <h2>Match Results</h2>
-    <div v-if="matches.length === 0" class="no-matches">
-      No matches played yet.
-    </div>
-    <table v-else>
+    <table>
       <thead>
         <tr>
           <th colspan="3">{{ weekLabel }} Match Result</th>

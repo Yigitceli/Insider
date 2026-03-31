@@ -1,12 +1,7 @@
 <template>
   <div class="simulation-view">
-    <div class="panels">
+    <div class="top-row">
       <LeagueTable :standings="leagueTable" />
-      <MatchResults
-        :matches="matches"
-        :week-label="weekLabel"
-        @update-match="handleUpdateMatch"
-      />
       <PredictionTable
         :predictions="predictions"
         :week-label="weekLabel"
@@ -20,6 +15,20 @@
       @next-week="handleNextWeek"
       @reset="handleReset"
     />
+
+    <div class="match-section">
+      <h2>Match Results</h2>
+      <div v-if="playedWeeks.length" class="weeks-list">
+        <MatchResults
+          v-for="weekResult in playedWeeks"
+          :key="weekResult.week"
+          :matches="weekResult.matches"
+          :week-label="weekResult.week + ordinalSuffix(weekResult.week) + ' Week'"
+          @update-match="handleUpdateMatch"
+        />
+      </div>
+      <p v-else class="no-matches">No matches played yet.</p>
+    </div>
 
     <div v-if="error" class="error">{{ error }}</div>
   </div>
@@ -43,7 +52,7 @@ export default {
   data() {
     return {
       leagueTable: [],
-      matches: [],
+      playedWeeks: [],
       predictions: null,
       currentWeek: 1,
       lastPlayedWeek: null,
@@ -73,12 +82,35 @@ export default {
       this.error = null
       try {
         const data = await api.getLeague()
-        this.updateState(data)
+        this.leagueTable = data.league_table
+        this.predictions = data.predictions
+        this.currentWeek = data.current_week
+        this.lastPlayedWeek = data.last_played_week
+        this.isFinished = data.is_finished
+        await this.loadPlayedWeeks()
       } catch (e) {
         this.error = e.message
       } finally {
         this.loading = false
       }
+    },
+
+    async loadPlayedWeeks() {
+      if (!this.lastPlayedWeek) {
+        this.playedWeeks = []
+        return
+      }
+      const data = await api.getFixtures()
+      const grouped = {}
+      data.matches.forEach((match) => {
+        if (match.is_played) {
+          if (!grouped[match.week]) {
+            grouped[match.week] = { week: match.week, matches: [] }
+          }
+          grouped[match.week].matches.push(match)
+        }
+      })
+      this.playedWeeks = Object.values(grouped).sort((a, b) => a.week - b.week)
     },
 
     async handleNextWeek() {
@@ -87,11 +119,14 @@ export default {
       try {
         const data = await api.nextWeek()
         this.leagueTable = data.league_table
-        this.matches = data.matches
         this.predictions = data.predictions
         this.lastPlayedWeek = data.week
         this.currentWeek = data.week + 1
         this.isFinished = data.is_finished
+        this.playedWeeks.push({
+          week: data.week,
+          matches: data.matches,
+        })
       } catch (e) {
         this.error = e.message
       } finally {
@@ -107,14 +142,17 @@ export default {
         this.leagueTable = data.league_table
         this.predictions = data.predictions
         this.isFinished = data.is_finished
+        for (const result of data.results) {
+          this.playedWeeks.push({
+            week: result.week,
+            matches: result.matches,
+          })
+        }
         if (data.results.length > 0) {
           const lastWeek = data.results[data.results.length - 1]
-          this.matches = lastWeek.matches
           this.lastPlayedWeek = lastWeek.week
+          this.currentWeek = lastWeek.week + 1
         }
-        this.currentWeek = data.results.length > 0
-          ? data.results[data.results.length - 1].week + 1
-          : this.currentWeek
       } catch (e) {
         this.error = e.message
       } finally {
@@ -142,9 +180,12 @@ export default {
         const data = await api.updateMatch(matchId, homeGoals, awayGoals)
         this.leagueTable = data.league_table
         this.predictions = data.predictions
-        const idx = this.matches.findIndex((m) => m.id === matchId)
-        if (idx !== -1) {
-          this.matches[idx] = data.match
+        for (const weekResult of this.playedWeeks) {
+          const idx = weekResult.matches.findIndex((m) => m.id === matchId)
+          if (idx !== -1) {
+            weekResult.matches[idx] = data.match
+            break
+          }
         }
       } catch (e) {
         this.error = e.message
@@ -152,24 +193,35 @@ export default {
         this.loading = false
       }
     },
-
-    updateState(data) {
-      this.leagueTable = data.league_table
-      this.matches = data.matches || []
-      this.predictions = data.predictions
-      this.currentWeek = data.current_week
-      this.lastPlayedWeek = data.last_played_week
-      this.isFinished = data.is_finished
-    },
   },
 }
 </script>
 
 <style scoped>
-.panels {
+.top-row {
   display: flex;
   gap: 20px;
   margin-bottom: 20px;
+}
+
+.match-section {
+  margin-bottom: 20px;
+}
+
+.match-section h2 {
+  color: #2c3e50;
+  margin-bottom: 16px;
+}
+
+.weeks-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.no-matches {
+  color: #999;
+  font-style: italic;
 }
 
 .error {
@@ -182,8 +234,12 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .panels {
+  .top-row {
     flex-direction: column;
+  }
+
+  .weeks-list {
+    grid-template-columns: 1fr;
   }
 }
 </style>
