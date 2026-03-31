@@ -32,8 +32,13 @@
               <button class="btn-cancel" @click="cancelEdit">Cancel</button>
             </template>
             <template v-else>
-              <span class="score-text" @click="startEdit(match)">
+              <span
+                class="score-text"
+                title="Click to edit score"
+                @click="startEdit(match)"
+              >
                 {{ match.home_goals }} - {{ match.away_goals }}
+                <span class="edit-icon">&#9998;</span>
               </span>
             </template>
           </td>
@@ -75,7 +80,9 @@ export default {
       this.editingId = null
     },
     saveEdit(matchId) {
-      this.$emit('update-match', matchId, this.editHome, this.editAway)
+      const home = Math.max(0, Math.floor(this.editHome) || 0)
+      const away = Math.max(0, Math.floor(this.editAway) || 0)
+      this.$emit('update-match', matchId, home, away)
       this.editingId = null
     },
   },
@@ -129,12 +136,28 @@ td {
 .score-text {
   cursor: pointer;
   font-weight: bold;
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 4px;
+  border: 1px dashed transparent;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .score-text:hover {
   background-color: #e8f4fd;
+  border-color: #3498db;
+}
+
+.edit-icon {
+  font-size: 12px;
+  opacity: 0.3;
+  transition: opacity 0.2s;
+}
+
+.score-text:hover .edit-icon {
+  opacity: 0.8;
 }
 
 .score-input {
